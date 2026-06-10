@@ -1,0 +1,53 @@
+# Dozzle-Enhanced AI Log Analysis Agent — Dependencies
+# Python 3.12+
+# Install: pip install -r requirements.txt
+
+# ── Web framework ────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+
+# ── HTTP clients ─────────────────────────────────────────────────────────────
+aiohttp==3.11.10
+httpx==0.28.1
+
+# ── LLM API clients ──────────────────────────────────────────────────────────
+anthropic==0.40.0
+openai==1.58.1
+
+# ── HuggingFace / ML ─────────────────────────────────────────────────────────
+sentence-transformers==3.3.1
+transformers==4.47.1
+torch==2.5.1
+tokenizers==0.21.0
+
+# ── ML / anomaly detection ───────────────────────────────────────────────────
+scikit-learn==1.6.0
+numpy==2.2.0
+faiss-cpu==1.9.0
+
+# ── Docker integration ───────────────────────────────────────────────────────
+docker==7.1.0
+
+# ── Data / storage ───────────────────────────────────────────────────────────
+PyYAML==6.0.2
+
+# ── Scheduling ───────────────────────────────────────────────────────────────
+apscheduler==3.10.4
+
+# ── CLI ──────────────────────────────────────────────────────────────────────
+click==8.1.8
+
+# ── XML parsing (ArXiv crawl) ────────────────────────────────────────────────
+# (uses stdlib xml.etree.ElementTree — no extra dep)
+
+# ── RSS feed parsing ─────────────────────────────────────────────────────────
+feedparser==6.0.11
+
+# ── Testing ──────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.25.0
+pytest-mock==3.14.0
+
+# ── Prometheus metrics (optional — for dockprom integration) ─────────────────
+prometheus-client==0.21.1

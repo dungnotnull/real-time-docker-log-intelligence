@@ -1,0 +1,93 @@
+# Dozzle-Enhanced AI Log Analysis Agent — Runtime Configuration
+
+agent:
+  name: dozzle-enhanced
+  version: "1.0.0"
+  log_level: INFO
+
+# Dozzle / Docker connection
+dozzle:
+  base_url: http://localhost:8080        # Dozzle HTTP API URL
+  docker_socket: /var/run/docker.sock    # Docker socket path
+  mock_mode: false                       # Set true for testing without Docker
+
+# Log ingestion settings
+ingestion:
+  batch_size: 50                         # Lines per processing batch
+  batch_timeout_ms: 100                  # Max ms before flushing incomplete batch
+  max_queue_size: 50000                  # Back-pressure queue max size
+
+# Anomaly detection
+anomaly_detection:
+  contamination: 0.05                    # Expected fraction of anomalous logs
+  bootstrap_size: 500                    # Lines needed to train Isolation Forest
+  retrain_interval: 10000                # Lines between model retrains
+  lstm_window: 20                        # Sequence window for LSTM autoencoder
+  threshold_factor: 2.0                  # Anomaly = mean + N * std
+  if_score_threshold: -0.3               # Isolation Forest score cutoff
+
+# Log clustering
+clustering:
+  novel_cluster_threshold: 0.75         # Cosine similarity threshold for new cluster
+  centroid_ema_alpha: 0.1               # EMA factor for centroid update
+  recluster_interval: 10000             # Lines between full DBSCAN re-clusters
+  dbscan_eps: 0.3                       # DBSCAN epsilon (cosine distance)
+  dbscan_min_samples: 3                 # DBSCAN minimum cluster size
+
+# Error explanation
+explanation:
+  batch_window_seconds: 60              # Max wait before flushing to LLM
+  max_lines_per_batch: 10               # Max anomaly lines per LLM call
+  summarize_threshold_chars: 2000       # Use BART-CNN above this length
+  cache_ttl_seconds: 3600               # Cluster-level explanation cache TTL
+
+# LLM API settings
+llm:
+  provider_priority:
+    - claude
+    - openai
+    - ollama
+  claude_model: claude-opus-4-8
+  openai_model: gpt-4o
+  ollama_model: llama3
+  max_retries: 3
+  base_delay_seconds: 1.0
+  temperature_query: 0.0
+  temperature_explain: 0.2
+  temperature_summary: 0.5
+
+# HuggingFace model settings
+hf_models:
+  cache_dir: ./models
+  idle_unload_seconds: 600
+  preload_on_start: []                  # Models to eagerly load at startup
+  device: auto                          # auto | cpu | cuda
+
+# Memory / storage
+memory:
+  db_path: data/dozzle_agent.db
+  retention_days: 7
+  max_log_rows: 10000000                # ~2GB SQLite database cap
+  nl_cache_ttl_seconds: 300
+
+# REST API
+api:
+  host: 0.0.0.0
+  port: 8766
+  enable_cors: true
+
+# Alerting
+alerts:
+  webhook_url: null                     # Set to Slack/Teams/custom webhook URL
+  min_severity: HIGH                    # Alert on HIGH and CRITICAL only
+  deduplicate_window_seconds: 300       # Don't re-alert same issue within 5 min
+
+# Knowledge updater
+knowledge_updater:
+  enabled: true
+  schedule: "0 2 * * 0"               # Weekly Sunday 02:00
+  arxiv_categories:
+    - cs.OS
+    - cs.DC
+  top_n_entries: 10
+  recency_days_max: 90

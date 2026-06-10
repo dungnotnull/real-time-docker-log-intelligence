@@ -1,0 +1,113 @@
+version: "3.9"
+
+services:
+  # ── Dozzle-Enhanced AI Agent ────────────────────────────────────────────
+  dozzle-ai-agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: dozzle-ai-agent
+    restart: unless-stopped
+    ports:
+      - "8766:8766"           # REST API
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # Docker socket access
+      - agent-data:/app/data
+      - model-cache:/app/models
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DOZZLE_BASE_URL=http://dozzle:8080
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - HF_CACHE_DIR=/app/models
+      - DATA_DIR=/app/data
+    env_file:
+      - ../.env
+    depends_on:
+      - dozzle
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8766/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Dozzle (upstream log viewer) ────────────────────────────────────────
+  dozzle:
+    image: amir20/dozzle:v8.5.3
+    container_name: dozzle
+    restart: unless-stopped
+    ports:
+      - "8080:8080"           # Dozzle UI
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Ollama (local LLM for offline/privacy mode) ──────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - monitoring
+    profiles:
+      - offline   # Only start with: docker compose --profile offline up
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Test container (generates sample logs for testing) ───────────────
+  log-generator:
+    image: alpine:latest
+    container_name: log-generator
+    restart: unless-stopped
+    command: >
+      sh -c "while true; do
+        echo \"INFO  $(date): Request processed in $((RANDOM % 100))ms\";
+        echo \"INFO  $(date): Cache hit ratio: $(( RANDOM % 100 ))%\";
+        if [ $((RANDOM % 20)) -eq 0 ]; then
+          echo \"ERROR $(date): Connection timeout to upstream service\";
+        fi;
+        sleep 0.1;
+      done"
+    networks:
+      - monitoring
+    profiles:
+      - test   # Only start with: docker compose --profile test up
+
+volumes:
+  agent-data:
+    driver: local
+  model-cache:
+    driver: local
+  ollama-data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
